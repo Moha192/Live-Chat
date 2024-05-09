@@ -11,7 +11,7 @@ import (
 
 func SignUp(user *models.User) error {
 	var existingUserID int
-	err := DB.QueryRow(context.Background(), "SELECT userid FROM users WHERE email = $1", user.Email).Scan(&existingUserID)
+	err := DB.QueryRow(context.Background(), "SELECT userid FROM users WHERE username = $1", user.Username).Scan(&existingUserID)
 	if err == nil {
 		return errors.New("user already exists")
 	}
@@ -25,7 +25,7 @@ func SignUp(user *models.User) error {
 		return err
 	}
 
-	err = DB.QueryRow(context.Background(), "INSERT INTO users(email, password) VALUES($1, $2) ON CONFLICT DO NOTHING RETURNING userid", user.Email, user.Password).Scan(&user.UserID)
+	err = DB.QueryRow(context.Background(), "INSERT INTO users(username, password) VALUES($1, $2) ON CONFLICT DO NOTHING RETURNING userid", user.Username, user.Password).Scan(&user.UserID)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func SignUp(user *models.User) error {
 
 func LogIn(user *models.User) (bool, error) {
 	var hashedPassword []byte
-	err := DB.QueryRow(context.Background(), "SELECT userid, password FROM users WHERE email = $1", user.Email).Scan(&user.UserID, &hashedPassword)
+	err := DB.QueryRow(context.Background(), "SELECT userid, password FROM users WHERE username = $1", user.Username).Scan(&user.UserID, &hashedPassword)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, nil

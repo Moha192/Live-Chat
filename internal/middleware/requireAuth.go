@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,7 @@ func RequireAuth(c *gin.Context) {
 			return nil, errors.New("Unexpected signing method: " + token.Header["alg"].(string))
 		}
 
-		return []byte("secretkey"), nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "token is expired") {

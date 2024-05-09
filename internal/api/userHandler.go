@@ -17,10 +17,10 @@ func signUp(c *gin.Context) {
 	var user models.User
 
 	if c.Bind(&user) != nil {
-		c.Status(http.StatusBadRequest)
-
-	} else if user.Email == "" || user.Password == "" {
-		c.Status(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	} else if user.Username == "" || len(user.Password) < 4 {
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -46,7 +46,7 @@ func logIn(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 
-	} else if user.Email == "" || user.Password == "" {
+	} else if user.Username == "" || user.Password == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -88,7 +88,7 @@ func check(c *gin.Context) {
 func generateJWT(userID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID": userID,
-		"exp":    time.Now().Add(time.Second * 10).Unix(),
+		"exp":    time.Now().Add(time.Second * 20).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
