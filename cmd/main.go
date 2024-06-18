@@ -9,7 +9,7 @@ import (
 
 	"github.com/Moha192/Chat/database"
 	"github.com/Moha192/Chat/internal/api"
-	ws "github.com/Moha192/Chat/internal/websocket"
+	chat "github.com/Moha192/Chat/internal/chat"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 	defer database.DB.Close(context.Background())
 	log.Println("database connected")
 
-	hub := ws.NewNub()
+	hub := chat.NewNub()
 	go hub.Run()
 
 	r := api.SetupRouter(hub)

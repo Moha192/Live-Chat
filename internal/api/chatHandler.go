@@ -1,4 +1,4 @@
-package ws
+package api
 
 import (
 	"log"
@@ -6,11 +6,12 @@ import (
 	"strconv"
 
 	"github.com/Moha192/Chat/database"
+	chat "github.com/Moha192/Chat/internal/chat"
 	"github.com/Moha192/Chat/internal/models"
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Hub) GetChatsByUser(c *gin.Context) {
+func GetChatsByUser(h *chat.Hub, c *gin.Context) {
 	stringUserID := c.Param("user_id")
 	userID, err := strconv.Atoi(stringUserID)
 	if err != nil {
@@ -24,7 +25,7 @@ func (h *Hub) GetChatsByUser(c *gin.Context) {
 		return
 	}
 
-	if _, ok := h.clients[userID]; !ok {
+	if _, ok := h.Clients[userID]; !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "user not connected",
 		})
@@ -39,19 +40,19 @@ func (h *Hub) GetChatsByUser(c *gin.Context) {
 	}
 
 	for _, chatResp := range chatsResponse {
-		if _, ok := h.chats[chatResp.ChatID]; !ok {
-			h.chats[chatResp.ChatID] = &chat{
-				chatID:  chatResp.ChatID,
-				clients: make(map[int]*client),
+		if _, ok := h.Chats[chatResp.ChatID]; !ok {
+			h.Chats[chatResp.ChatID] = &chat.Chat{
+				ChatID:  chatResp.ChatID,
+				Clients: make(map[int]*chat.Client),
 			}
 		}
-		h.chats[chatResp.ChatID].clients[userID] = h.clients[userID]
+		h.Chats[chatResp.ChatID].Clients[userID] = h.Clients[userID]
 	}
 
 	c.JSON(http.StatusOK, chatsResponse)
 }
 
-func (h *Hub) CreateDirectChat(c *gin.Context) {
+func CreateDirectChat(h *chat.Hub, c *gin.Context) {
 	var newDirectChatReq models.CreateDirectChatReq
 	if err := c.ShouldBindJSON(&newDirectChatReq); err != nil {
 		log.Println(err)
@@ -78,17 +79,17 @@ func (h *Hub) CreateDirectChat(c *gin.Context) {
 		return
 	}
 
-	h.chats[chatID] = &chat{
-		chatID:  chatID,
-		clients: make(map[int]*client),
+	h.Chats[chatID] = &chat.Chat{
+		ChatID:  chatID,
+		Clients: make(map[int]*chat.Client),
 	}
 
-	if client, ok := h.clients[newDirectChatReq.UserID]; ok {
-		h.chats[chatID].clients[newDirectChatReq.UserID] = client
+	if client, ok := h.Clients[newDirectChatReq.UserID]; ok {
+		h.Chats[chatID].Clients[newDirectChatReq.UserID] = client
 	}
 
-	if client, ok := h.clients[newDirectChatReq.MemberID]; ok {
-		h.chats[chatID].clients[newDirectChatReq.MemberID] = client
+	if client, ok := h.Clients[newDirectChatReq.MemberID]; ok {
+		h.Chats[chatID].Clients[newDirectChatReq.MemberID] = client
 	}
 
 	var msg = models.CreateMsgReq{
@@ -98,13 +99,13 @@ func (h *Hub) CreateDirectChat(c *gin.Context) {
 	}
 
 	log.Printf("Direct chat created:{userID: %d, memberID: %d, chatID: %d}", newDirectChatReq.UserID, newDirectChatReq.MemberID, chatID)
-	h.broadcast <- &msg
+	h.Broadcast <- &msg
 	c.JSON(http.StatusOK, gin.H{
 		"chat_id": chatID,
 	})
 }
 
-func (h *Hub) DeleteDirectChat(c *gin.Context) {
+func DeleteDirectChat(h *chat.Hub, c *gin.Context) {
 	strChatID := c.Param("chat_id")
 	chatID, err := strconv.Atoi(strChatID)
 	if err != nil {
@@ -126,6 +127,6 @@ func (h *Hub) DeleteDirectChat(c *gin.Context) {
 		return
 	}
 
-	delete(h.chats, chatID)
+	delete(h.Chats, chatID)
 	c.Status(http.StatusOK)
 }

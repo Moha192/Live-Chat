@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Moha192/Chat/internal/models"
 )
@@ -56,6 +57,20 @@ func SetMessagesStatusToRead(messageID int) error {
 	`, messageID)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func DeleteMessage(messageID int) error {
+	result, err := DB.Exec(context.Background(), "DELETE FROM messages WHERE message_id = $1", messageID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("message not found")
 	}
 
 	return nil

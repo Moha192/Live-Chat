@@ -1,12 +1,12 @@
 package api
 
 import (
+	chat "github.com/Moha192/Chat/internal/chat"
 	"github.com/Moha192/Chat/internal/middleware"
-	ws "github.com/Moha192/Chat/internal/websocket"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(hub *ws.Hub) *gin.Engine {
+func SetupRouter(hub *chat.Hub) *gin.Engine {
 	r := gin.Default()
 
 	CORS(r)
@@ -17,12 +17,19 @@ func SetupRouter(hub *ws.Hub) *gin.Engine {
 
 	r.GET("/ws/connect/:user_id", hub.ConnectClient)
 
-	r.GET("/chats/:user_id", hub.GetChatsByUser)
-	r.POST("/directChat", hub.CreateDirectChat)
-	r.DELETE("/chat/:chat_id", hub.DeleteDirectChat)
+	r.GET("/chats/:user_id", func(c *gin.Context) {
+		GetChatsByUser(hub, c)
+	})
+	r.POST("/directChat", func(c *gin.Context) {
+		CreateDirectChat(hub, c)
+	})
+	r.DELETE("/chat/:chat_id", func(c *gin.Context) {
+		DeleteDirectChat(hub, c)
+	})
 
 	r.GET("/messages/:chat_id", GetMessagesByChat)
 	r.PATCH("/messages/:chat_id", SetMessagesStatusToRead)
+	r.DELETE("/message/:message_id", DeleteMessage)
 
 	return r
 }

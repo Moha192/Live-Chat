@@ -1,4 +1,4 @@
-package ws
+package chat
 
 import (
 	"encoding/json"
@@ -12,10 +12,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type client struct {
-	userID     int
-	connection *websocket.Conn
-	message    chan *models.Message
+type Client struct {
+	UserID     int
+	Connection *websocket.Conn
+	Message    chan *models.Message
 }
 
 var upgrader = websocket.Upgrader{
@@ -55,25 +55,25 @@ func (h *Hub) ConnectClient(c *gin.Context) {
 		return
 	}
 
-	client := &client{
-		userID:     userID,
-		connection: conn,
-		message:    make(chan *models.Message),
+	Client := &Client{
+		UserID:     userID,
+		Connection: conn,
+		Message:    make(chan *models.Message),
 	}
 
-	h.register <- client
-	go client.readPump(h)
-	go client.writePump()
+	h.Register <- Client
+	go Client.readPump(h)
+	go Client.writePump()
 }
 
-func (c *client) readPump(hub *Hub) {
+func (c *Client) readPump(hub *Hub) {
 	defer func() {
-		c.connection.Close()
-		hub.unregister <- c
+		c.Connection.Close()
+		hub.Unregister <- c
 	}()
 
 	for {
-		_, messageWS, err := c.connection.ReadMessage()
+		_, messageWS, err := c.Connection.ReadMessage()
 		if err != nil {
 			break
 		}
@@ -91,8 +91,8 @@ func (c *client) readPump(hub *Hub) {
 			continue
 		}
 
-		if chat, ok := hub.chats[message.ChatID]; ok {
-			if _, ok = chat.clients[message.UserID]; !ok {
+		if chat, ok := hub.Chats[message.ChatID]; ok {
+			if _, ok = chat.Clients[message.UserID]; !ok {
 				c.wsRespondWithError("Client not connetcted")
 				continue
 			}
@@ -101,31 +101,31 @@ func (c *client) readPump(hub *Hub) {
 			continue
 		}
 
-		hub.broadcast <- &message
+		hub.Broadcast <- &message
 	}
 }
 
-func (c *client) writePump() {
+func (c *Client) writePump() {
 	defer func() {
-		c.connection.Close()
+		c.Connection.Close()
 	}()
 
 	for {
-		message, ok := <-c.message
+		message, ok := <-c.Message
 		if !ok {
-			c.connection.WriteMessage(websocket.CloseMessage, []byte{})
+			c.Connection.WriteMessage(websocket.CloseMessage, []byte{})
 			return
 		}
-		c.connection.WriteJSON(message)
+		c.Connection.WriteJSON(message)
 	}
 }
 
-func (c *client) wsRespondWithError(err string) {
+func (c *Client) wsRespondWithError(err string) {
 	errorMsg := struct {
 		Error string `json:"error"`
 	}{
 		Error: err,
 	}
 
-	c.connection.WriteJSON(errorMsg)
+	c.Connection.WriteJSON(errorMsg)
 }
