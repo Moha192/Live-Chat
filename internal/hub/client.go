@@ -44,7 +44,7 @@ func (h *Hub) ConnectClient(c *gin.Context) {
 
 	if !userExists {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "uesr not exists",
+			"error": "user not exists",
 		})
 		return
 	}
@@ -55,15 +55,15 @@ func (h *Hub) ConnectClient(c *gin.Context) {
 		return
 	}
 
-	Client := &Client{
+	client := &Client{
 		UserID:     userID,
 		Connection: conn,
 		Message:    make(chan *models.Message),
 	}
 
-	h.Register <- Client
-	go Client.readPump(h)
-	go Client.writePump()
+	h.Register <- client
+	go client.readPump(h)
+	go client.writePump()
 }
 
 func (c *Client) readPump(hub *Hub) {

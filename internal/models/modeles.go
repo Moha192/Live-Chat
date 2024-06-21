@@ -39,11 +39,7 @@ type CreateDirectChatReq struct {
 	FirstMessage string `json:"first_message"`
 }
 
-type CreateDirectChatResp struct {
-	ChatID int `json:"chat_id"`
-}
-
-type GetChatsByUserResp struct {
+type UsersChatsResp struct {
 	ChatID      int       `json:"chat_id"`
 	ChatName    string    `json:"chat_name"`
 	ChatType    string    `json:"chat_type"`

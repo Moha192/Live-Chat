@@ -3,56 +3,57 @@ package api
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/Moha192/Chat/database"
-	chat "github.com/Moha192/Chat/internal/chat"
+	hub "github.com/Moha192/Chat/internal/hub"
 	"github.com/Moha192/Chat/internal/models"
 	"github.com/gin-gonic/gin"
 )
 
-func GetChatsByUser(h *chat.Hub, c *gin.Context) {
-	stringUserID := c.Param("user_id")
-	userID, err := strconv.Atoi(stringUserID)
+func GetChatsByUser(h *hub.Hub, c *gin.Context) {
+	userID, err := handleID(c.Param("user_id"))
 	if err != nil {
 		log.Println(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
 	}
 
-	if userID < 1 {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
+	h.Mu.Lock()
+	client, userExists := h.Clients[userID]
+	h.Mu.Unlock()
 
-	if _, ok := h.Clients[userID]; !ok {
+	if !userExists {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "user not connected",
 		})
 		return
 	}
 
-	chatsResponse, err := database.GetChatsByUser(userID)
+	usersChats, err := database.GetChatsByUser(userID)
 	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		log.Println("Error fetching chats for user:", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	for _, chatResp := range chatsResponse {
-		if _, ok := h.Chats[chatResp.ChatID]; !ok {
-			h.Chats[chatResp.ChatID] = &chat.Chat{
-				ChatID:  chatResp.ChatID,
-				Clients: make(map[int]*chat.Client),
+	//add chats to the hub if they are not there
+	h.Mu.Lock()
+	for _, chat := range usersChats {
+		if _, ok := h.Chats[chat.ChatID]; !ok {
+			h.Chats[chat.ChatID] = &hub.Chat{
+				ChatID:  chat.ChatID,
+				Clients: make(map[int]*hub.Client),
 			}
 		}
-		h.Chats[chatResp.ChatID].Clients[userID] = h.Clients[userID]
+		//add client to chat
+		h.Chats[chat.ChatID].Clients[userID] = client
 	}
+	h.Mu.Unlock()
 
-	c.JSON(http.StatusOK, chatsResponse)
+	c.JSON(http.StatusOK, usersChats)
 }
 
-func CreateDirectChat(h *chat.Hub, c *gin.Context) {
+func CreateDirectChat(h *hub.Hub, c *gin.Context) {
 	var newDirectChatReq models.CreateDirectChatReq
 	if err := c.ShouldBindJSON(&newDirectChatReq); err != nil {
 		log.Println(err)
@@ -79,11 +80,13 @@ func CreateDirectChat(h *chat.Hub, c *gin.Context) {
 		return
 	}
 
-	h.Chats[chatID] = &chat.Chat{
+	//add chat to the hub
+	h.Chats[chatID] = &hub.Chat{
 		ChatID:  chatID,
-		Clients: make(map[int]*chat.Client),
+		Clients: make(map[int]*hub.Client),
 	}
 
+	//add members of chat
 	if client, ok := h.Clients[newDirectChatReq.UserID]; ok {
 		h.Chats[chatID].Clients[newDirectChatReq.UserID] = client
 	}
@@ -105,16 +108,9 @@ func CreateDirectChat(h *chat.Hub, c *gin.Context) {
 	})
 }
 
-func DeleteDirectChat(h *chat.Hub, c *gin.Context) {
-	strChatID := c.Param("chat_id")
-	chatID, err := strconv.Atoi(strChatID)
+func DeleteDirectChat(h *hub.Hub, c *gin.Context) {
+	chatID, err := handleID(c.Param("chat_id"))
 	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	if chatID < 1 {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return

@@ -17,7 +17,7 @@ type Hub struct {
 	Mu         sync.Mutex
 }
 
-func NewNub() *Hub {
+func NewHub() *Hub {
 	return &Hub{
 		Chats:      make(map[int]*Chat),
 		Clients:    make(map[int]*Client),

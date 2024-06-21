@@ -62,6 +62,10 @@ func SetMessagesStatusToRead(messageID int) error {
 	return nil
 }
 
+func ChangeMessageContent(messageID int) error {
+	return nil
+}
+
 func DeleteMessage(messageID int) error {
 	result, err := DB.Exec(context.Background(), "DELETE FROM messages WHERE message_id = $1", messageID)
 	if err != nil {

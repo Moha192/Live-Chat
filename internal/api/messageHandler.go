@@ -3,21 +3,14 @@ package api
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/Moha192/Chat/database"
 	"github.com/gin-gonic/gin"
 )
 
 func GetMessagesByChat(c *gin.Context) {
-	chatID, err := strconv.Atoi(c.Param("chat_id"))
+	chatID, err := handleID(c.Param("chat_id"))
 	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	if chatID < 1 {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
@@ -39,20 +32,31 @@ func GetMessagesByChat(c *gin.Context) {
 }
 
 func SetMessagesStatusToRead(c *gin.Context) {
-	chatID, err := strconv.Atoi(c.Param("chat_id"))
+	messageID, err := handleID(c.Param("message_id"))
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	if chatID < 1 {
+	err = database.SetMessagesStatusToRead(messageID)
+	if err != nil {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+func EditMessage(c *gin.Context) {
+	messageID, err := handleID(c.Param("message_id"))
+	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	err = database.SetMessagesStatusToRead(chatID)
+	err = database.ChangeMessageContent(messageID)
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -62,14 +66,8 @@ func SetMessagesStatusToRead(c *gin.Context) {
 }
 
 func DeleteMessage(c *gin.Context) {
-	messageID, err := strconv.Atoi(c.Param("message_id"))
+	messageID, err := handleID(c.Param("message_id"))
 	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	if messageID < 1 {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return

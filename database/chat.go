@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func GetChatsByUser(userID int) ([]models.GetChatsByUserResp, error) {
+func GetChatsByUser(userID int) ([]models.UsersChatsResp, error) {
 	rows, err := DB.Query(context.Background(), `
 	SELECT
 		c.chat_id,
@@ -47,9 +47,9 @@ func GetChatsByUser(userID int) ([]models.GetChatsByUserResp, error) {
 	}
 	defer rows.Close()
 
-	var chats []models.GetChatsByUserResp
+	var chats []models.UsersChatsResp
 	for rows.Next() {
-		var chat models.GetChatsByUserResp
+		var chat models.UsersChatsResp
 		var msg models.Message
 
 		err := rows.Scan(&chat.ChatID, &chat.ChatName, &chat.ChatType, &chat.CreatedAt, &msg.MessageID, &msg.UserID, &msg.Content, &msg.Status, &msg.Type, &msg.CreatedAt)

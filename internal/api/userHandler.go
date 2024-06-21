@@ -5,16 +5,14 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/Moha192/Chat/database"
 	"github.com/Moha192/Chat/internal/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-func signUp(c *gin.Context) {
+func SignUp(c *gin.Context) {
 	var user models.AuthReq
 
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -43,7 +41,7 @@ func signUp(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func logIn(c *gin.Context) {
+func LogIn(c *gin.Context) {
 	var user models.AuthReq
 
 	if err := c.Bind(&user); err != nil {
@@ -103,23 +101,4 @@ func check(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access": "true",
 	})
-}
-
-func generateJWT(userID int) (string, error) {
-	JWTExpTime, err := strconv.Atoi(os.Getenv("JWT_EXP_TIME"))
-	if err != nil {
-		return "", err
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID": userID,
-		"exp":    time.Now().Add(time.Second * time.Duration(JWTExpTime)).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
 }

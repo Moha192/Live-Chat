@@ -1,18 +1,18 @@
 package api
 
 import (
-	chat "github.com/Moha192/Chat/internal/chat"
+	hub "github.com/Moha192/Chat/internal/hub"
 	"github.com/Moha192/Chat/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(hub *chat.Hub) *gin.Engine {
+func SetupRouter(hub *hub.Hub) *gin.Engine {
 	r := gin.Default()
 
 	CORS(r)
 
-	r.POST("/signup", signUp)
-	r.POST("/login", logIn)
+	r.POST("/signup", SignUp)
+	r.POST("/login", LogIn)
 	r.GET("/checkjwt", middleware.RequireAuth, check)
 
 	r.GET("/ws/connect/:user_id", hub.ConnectClient)
@@ -28,7 +28,8 @@ func SetupRouter(hub *chat.Hub) *gin.Engine {
 	})
 
 	r.GET("/messages/:chat_id", GetMessagesByChat)
-	r.PATCH("/messages/:chat_id", SetMessagesStatusToRead)
+	r.PATCH("/messages/status/:message_id", SetMessagesStatusToRead)
+	r.PATCH("/message/:message_id", EditMessage)
 	r.DELETE("/message/:message_id", DeleteMessage)
 
 	return r
